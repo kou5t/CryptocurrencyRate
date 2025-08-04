@@ -14,7 +14,7 @@ def get_current_rates() -> None:
             response = requests.get(url)
             response.raise_for_status()
             current_exchange_rates[site] = response.json()
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             messagebox.showerror('Ошибка', f'Произошла ошибка при запросе данных.\n\nПожалуйста, проверьте интернет соединение на устройстве!')
             return
         except requests.exceptions.RequestException as e:
@@ -46,16 +46,18 @@ def get_cryptocurrency_rate() -> None:
     for site in current_exchange_rates.keys():
         try:
             if site == 'Cryptocompare':
-                current_exchange_rate = current_exchange_rates['Cryptocompare'][abbreviated_name_cryptocurrency][abbreviated_name_currency]
+                current_exchange_rate = current_exchange_rates[site][abbreviated_name_cryptocurrency][abbreviated_name_currency]
             elif site == 'Coingecko':
-                current_exchange_rate = current_exchange_rates['Coingecko'][current_cryptocurrency.lower().replace(' ', '')][abbreviated_name_currency.lower()]
+                current_exchange_rate = current_exchange_rates[site][current_cryptocurrency.lower().replace(' ', '')][abbreviated_name_currency.lower()]
+            else:
+                continue
             text += f'Источник "{site}": 1 {abbreviated_name_cryptocurrency} ({current_cryptocurrency}) = {current_exchange_rate:,.2f} {current_currency}\n\n'
         except KeyError:
             continue
-    text += f'Последнее обновление данных: {last_update_time_rates.strftime('%H:%M %d.%m.%Y')}'
+    text += f'Последнее обновление данных: {last_update_time_rates.strftime("%H:%M %d.%m.%Y")}'
     lbl_current_cryptocurrency_rate.config(text=text, justify='center')
 
-# Словарь актуальных курсов криптовалют
+# Словарь актуальных курсов криптовалют с разных сайтов
 current_exchange_rates = {}
 
 # Словарь полного названия криптовалюты и его сокращенного названия
@@ -122,7 +124,7 @@ lbl_current_cryptocurrency_rate = ttk.Label(text='')
 lbl_current_cryptocurrency_rate.pack(pady=10)
 
 # Загружаем данные по актуальным курсам и сохраняем последнюю дату и время его обновления
-get_current_rates()
 last_update_time_rates = datetime.datetime.now()
+get_current_rates()
 
 window.mainloop()
