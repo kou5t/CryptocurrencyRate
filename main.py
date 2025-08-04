@@ -6,9 +6,8 @@ import requests
 
 def get_current_rates() -> None:
     """Функция получает из открытого API значения курсов популярных криптовалюты в популярные валюты и
-    сохраняет данные в глобальной переменной current_exchange_rates, обновляя их раз в 30 секунд"""
+    сохраняет данные в глобальной переменной current_exchange_rates"""
     global current_exchange_rates
-    was_mistake = False
 
     for site, url in urls.items():
         try:
@@ -16,28 +15,28 @@ def get_current_rates() -> None:
             response.raise_for_status()
             current_exchange_rates[site] = response.json()
         except requests.exceptions.ConnectionError as e:
-            messagebox.showerror('Ошибка', f'Произошла ошибка при запросе данных.\n\nПожалуйста, проверьте интернет соединение на устройстве! Мы попробуем обновить данные через 1 минуту.')
-            window.after(ms=60000, func=get_current_rates)
+            messagebox.showerror('Ошибка', f'Произошла ошибка при запросе данных.\n\nПожалуйста, проверьте интернет соединение на устройстве!')
             return
         except requests.exceptions.RequestException as e:
-            messagebox.showerror('Ошибка', f'Произошла ошибка при обновлении крусов криптовалют с API сайта "{site}": \n\n{e}\n\nМы попробуем повторно обновить/запросить данные через 1 минуту!')
-            was_mistake = True
-
-    if was_mistake:
-        window.after(ms=60000, func=get_current_rates)
-    else:
-        window.after(ms=20000, func=get_current_rates)
+            messagebox.showerror('Ошибка', f'Произошла ошибка при обновлении крусов криптовалют с API сайта "{site}": \n\n{e}\n\n')
 
 def get_cryptocurrency_rate() -> None:
-    """Функция после нажатия на кнопку 'Отправить' показывает выбранный курс криптовалюты в выбранной валюте из разных источников"""
+    """Функция после нажатия на кнопку 'Отправить' показывает выбранный курс криптовалюты в выбранной валюте из разных источников,
+    обновляя их актуальность раз в 30 секунд при запросе"""
+    global last_update_time_rates
+
     current_cryptocurrency = cryptocurrencies_combobox.get()
     current_currency = currencies_combobox.get()
     if current_cryptocurrency == set_value_cryptocurrencies or current_currency == set_value_currencies:
         messagebox.showerror('Ошибка', 'Пожалуйста, выберите криптовалюту и валюту для получения актуального курса!')
         return
 
+    if datetime.datetime.now() - last_update_time_rates > datetime.timedelta(seconds=30):
+        get_current_rates()
+        last_update_time_rates = datetime.datetime.now()
+
     if not current_exchange_rates:
-        messagebox.showerror('Ошибка', 'Сейчас нет актуальных данных по курсам криптовалют\n\nПожалуйста, попробуйте сделать запрос чуть позже, мы автоматически обновим данные!')
+        messagebox.showerror('Ошибка', 'Сейчас нет актуальных данных по курсам криптовалют\n\nПожалуйста, попробуйте сделать запрос чуть позже!')
         return
 
     text = ''
@@ -45,13 +44,15 @@ def get_cryptocurrency_rate() -> None:
     abbreviated_name_cryptocurrency = popular_cryptocurrencies.get(current_cryptocurrency)
     abbreviated_name_currency = popular_currencies.get(current_currency)
     for site in current_exchange_rates.keys():
-        if site == 'Cryptocompare':
-            current_exchange_rate = current_exchange_rates['Cryptocompare'][abbreviated_name_cryptocurrency][abbreviated_name_currency]
+        try:
+            if site == 'Cryptocompare':
+                current_exchange_rate = current_exchange_rates['Cryptocompare'][abbreviated_name_cryptocurrency][abbreviated_name_currency]
+            elif site == 'Coingecko':
+                current_exchange_rate = current_exchange_rates['Coingecko'][current_cryptocurrency.lower().replace(' ', '')][abbreviated_name_currency.lower()]
             text += f'Источник "{site}": 1 {abbreviated_name_cryptocurrency} ({current_cryptocurrency}) = {current_exchange_rate:,.2f} {current_currency}\n\n'
-        elif site == 'Coingecko':
-            current_exchange_rate = current_exchange_rates['Coingecko'][current_cryptocurrency.lower().replace(' ', '')][abbreviated_name_currency.lower()]
-            text += f'Источник "{site}": 1 {abbreviated_name_cryptocurrency} ({current_cryptocurrency}) = {current_exchange_rate:,.2f} {current_currency}\n\n'
-    text += f'Последний запрос данных: {datetime.datetime.now().strftime('%H:%M %d.%m.%Y')}'
+        except KeyError:
+            continue
+    text += f'Последнее обновление данных: {last_update_time_rates.strftime('%H:%M %d.%m.%Y')}'
     lbl_current_cryptocurrency_rate.config(text=text, justify='center')
 
 # Словарь актуальных курсов криптовалют
@@ -98,7 +99,7 @@ window = Tk()
 window.title('Курсы криптовалют')
 window.geometry('500x250')
 
-Label(text='Выберите криптовалюту для отображения ее стоимости\nДанные обновляются 1 раз в 20 секунд').pack(pady=10)
+Label(text='Выберите криптовалюту для отображения ее стоимости\n').pack(pady=10)
 
 frm_combobox = ttk.Frame(master=window)
 frm_combobox.pack()
@@ -120,6 +121,8 @@ ttk.Button(master=window, text='Посмотреть курс криптовал
 lbl_current_cryptocurrency_rate = ttk.Label(text='')
 lbl_current_cryptocurrency_rate.pack(pady=10)
 
+# Загружаем данные по актуальным курсам и сохраняем последнюю дату и время его обновления
 get_current_rates()
+last_update_time_rates = datetime.datetime.now()
 
 window.mainloop()
