@@ -40,7 +40,7 @@ def show_cryptocurrency_rate() -> None:
         messagebox.showerror('Ошибка', 'Пожалуйста, выберите криптовалюту и валюту для получения актуального курса!')
         return
 
-    # Если с момента последнего запроса прошло более 30 секунд, то обновляет время запроса и получаем новые данные по курсам
+    # Если с момента последнего запроса прошло более 20 секунд, то обновляет время запроса и получаем новые данные по курсам
     if datetime.datetime.now() - last_update_time_rates > datetime.timedelta(seconds=20):
         get_current_rates_from_api()
         last_update_time_rates = datetime.datetime.now()
@@ -59,7 +59,7 @@ def show_cryptocurrency_rate() -> None:
     current_exchange_rate = current_exchange_rates[current_cryptocurrency.lower().replace(' ', '')][abbreviated_name_currency.lower()]
 
     # Формируем результат запроса в текст для показа в окне приложения
-    text_rate = f'1 {abbreviated_name_cryptocurrency} ({current_cryptocurrency}) = {current_exchange_rate:,.2f} {current_currency}'
+    text_rate = f'1 {abbreviated_name_cryptocurrency} ({current_cryptocurrency}) = {current_exchange_rate:,.2f} {abbreviated_name_currency} ({current_currency})'
     text_last_update = f'Последнее обновление данных: {last_update_time_rates.strftime("%H:%M %d.%m.%Y")}'
 
     # Показываем выбранный курс криптовалюты и валюты пользователем
@@ -73,8 +73,8 @@ def about() -> None:
 Выберите в главном меню из выпадающих списков нужную криптовалюту и валюту, после нажмите на кнопку "Посмотреть курс криптовалюты" для получения и отображения данных\n 
 Данные по курсам криптовалют предоставлены сервисом "CoinGecko"\n
 Разработчик приложения - Крылов Дмитрий Сергеевич\n
-Ссылка на GitHub - https://github.com/kou5t\n
-Email для связи - kou5t@yandex.ru\n'''
+Ссылка на GitHub - github.com/kou5t\n
+Email для связи - kou5t@yandex.ru'''
     messagebox.showinfo(title='О программе', message=text_about_program)
 
 # Словарь полного названия криптовалюты и его сокращенного названия
@@ -139,15 +139,18 @@ frm_combobox = ttk.Frame(master=window)
 frm_combobox.pack()
 
 # Список для выбора популярной криптовалюты
-cryptocurrencies_combobox = ttk.Combobox(master=frm_combobox, values=list(popular_cryptocurrencies.keys()))
+cryptocurrencies_combobox = ttk.Combobox(master=frm_combobox, values=list(popular_cryptocurrencies.keys()), state='readonly')
 cryptocurrencies_combobox.pack(side='left', padx=5)
 
 # Устанавливаем выбор по умолчанию, чтобы пользователю было понятно, что нужно в этом списке выбрать криптовалюту
 set_value_cryptocurrencies = '-- криптовалюта --'
 cryptocurrencies_combobox.set(set_value_cryptocurrencies)
 
+# Разделительная черта между выпадающими списками, что во что конвертируем (криптовалюту в валюту)
+Label(master=frm_combobox, text='->').pack(side='left', padx=5)
+
 # Список для выбора популярной валюты
-currencies_combobox = ttk.Combobox(master=frm_combobox, values=list(popular_currencies.keys()))
+currencies_combobox = ttk.Combobox(master=frm_combobox, values=list(popular_currencies.keys()), state='readonly')
 currencies_combobox.pack(side='left', padx=5)
 
 # Устанавливаем выбор по умолчанию, чтобы пользователю было понятно, что нужно в этом списке выбрать валюту
